@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-
-import '../viewmodels/booking_view_model.dart';
-import 'booking_detail_screen.dart';
+import '../theme/app_theme.dart';
+import '../models/app_models.dart';
 import 'create_booking_screen.dart';
+import 'booking_history_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,396 +13,356 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      final vm = context.read<BookingViewModel>();
-
-      vm.loadServices();
-      vm.loadBookings();
-    });
-  }
-
-  void _onBottomNavTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 1) {
-      context.read<BookingViewModel>().loadBookings();
-    }
-  }
+  int _bottomNavIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _selectedIndex == 0
-              ? 'QuickMove'
-              : _selectedIndex == 1
-                  ? 'My Bookings'
-                  : 'Profile',
-        ),
-      ),
-
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _buildHomeTab(),
-          _buildBookingsTab(),
-          _buildProfileTab(),
-        ],
-      ),
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onBottomNavTap,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_outlined),
-            activeIcon: Icon(Icons.receipt_long),
-            label: 'Bookings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHomeTab() {
-    return Consumer<BookingViewModel>(
-      builder: (context, viewModel, child) {
-        if (viewModel.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        if (viewModel.errorMessage != null &&
-            viewModel.services.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                viewModel.errorMessage!,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          );
-        }
-
-        if (viewModel.services.isEmpty) {
-          return const Center(
-            child: Text(
-              'No delivery services available',
-            ),
-          );
-        }
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              'Delivery Services',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            const Text(
-              'Choose a vehicle for your delivery',
-            ),
-
-            const SizedBox(height: 20),
-
-            ...viewModel.services.map(
-              (service) {
-                return Card(
-                  margin: const EdgeInsets.only(
-                    bottom: 14,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Location Bar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on,
+                          color: QuickMoveColors.accentOrange, size: 22),
+                      const SizedBox(width: 6),
+                      Text('Bengaluru',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontSize: 16)),
+                      const Icon(Icons.keyboard_arrow_down, size: 20),
+                    ],
                   ),
-                  child: ListTile(
-                    contentPadding:
-                        const EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      radius: 28,
-                      child: Icon(
-                        service.name == 'Two-Wheeler'
-                            ? Icons.two_wheeler
-                            : service.name ==
-                                    'Pickup Truck'
-                                ? Icons.fire_truck
-                                : Icons.local_shipping,
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: QuickMoveColors.primaryNavy,
+                    child: const Icon(Icons.person, color: Colors.white),
+                  )
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              Text('Good Evening, Jayant 👋',
+                  style: Theme.of(context)
+                      .textTheme
+                      .displayLarge
+                      ?.copyWith(fontSize: 22)),
+              const Text('Nagpur, Maharashtra',
+                  style: TextStyle(
+                      fontSize: 13, color: QuickMoveColors.textSecondary)),
+              const SizedBox(height: 16),
+
+              // Prominent Where to Move Goods Card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Where to move goods?',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: QuickMoveColors.surfaceContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('Instant Dispatch',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: QuickMoveColors.primaryNavy)),
+                          )
+                        ],
                       ),
-                    ),
-                    title: Text(
-                      service.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 16),
+                      _LocationField(
+                        icon: Icons.radio_button_checked,
+                        iconColor: QuickMoveColors.emeraldGreen,
+                        label: 'PICKUP POINT',
+                        value: 'Green Glen Layout, Bellandur',
                       ),
-                    ),
-                    subtitle: Padding(
-                      padding:
-                          const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '${service.description}\nFrom ₹${service.baseFare.toInt()}',
+                      const Divider(height: 24),
+                      _LocationField(
+                        icon: Icons.call_made,
+                        iconColor: QuickMoveColors.accentOrange,
+                        label: 'DROP POINT',
+                        value: 'Koramangala 4th Block, 80ft Road',
                       ),
-                    ),
-                    isThreeLine: true,
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const CreateBookingScreen()),
+                          );
+                        },
+                        child: const Text('Book a Delivery Now from ₹49'),
+                      )
+                    ],
                   ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 15),
-
-            SizedBox(
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const CreateBookingScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add),
-                label: const Text(
-                  'Create New Booking',
                 ),
               ),
-            ),
 
-            const SizedBox(height: 20),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildBookingsTab() {
-    return Consumer<BookingViewModel>(
-      builder: (context, viewModel, child) {
-        if (viewModel.bookings.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 60,
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    'No bookings yet',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Your delivery bookings will appear here.',
-                    textAlign: TextAlign.center,
+                  Text('Choose Your Fleet',
+                      style: Theme.of(context).textTheme.titleLarge),
+                  const Text('FASTEST ETA',
+                      style: TextStyle(
+                          color: QuickMoveColors.accentOrange,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11)),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Available Vehicles
+              ...kAvailableVehicles
+                  .map((vehicle) => _VehicleListCard(vehicle: vehicle)),
+
+              const SizedBox(height: 16),
+              // Recent Booking Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Recent Booking',
+                      style: Theme.of(context).textTheme.titleLarge),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                const BookingHistoryScreen()),
+                      );
+                    },
+                    child: const Text('View All',
+                        style: TextStyle(
+                            color: QuickMoveColors.accentOrange,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: viewModel.loadBookings,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: viewModel.bookings.length,
-            itemBuilder: (context, index) {
-              final booking =
-                  viewModel.bookings[index];
-
-              return Card(
-                margin:
-                    const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding:
-                      const EdgeInsets.all(16),
-                  leading: CircleAvatar(
-                    child: Icon(
-                      booking.vehicleType ==
-                              'Two-Wheeler'
-                          ? Icons.two_wheeler
-                          : booking.vehicleType ==
-                                  'Pickup Truck'
-                              ? Icons.fire_truck
-                              : Icons.local_shipping,
-                    ),
-                  ),
-                  title: Text(
-                    booking.bookingId,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding:
-                        const EdgeInsets.only(top: 8),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${booking.pickup} → ${booking.drop}',
-                          maxLines: 2,
-                          overflow:
-                              TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '${booking.vehicleType} • ₹${booking.fare.toStringAsFixed(0)}',
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          _formatDate(
-                            booking.dateTime,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  trailing: _statusChip(
-                    booking.status,
-                  ),
-                  isThreeLine: true,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            BookingDetailScreen(
-                          booking: booking,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
+              const SizedBox(height: 10),
+              _RecentBookingSummaryCard(),
+              const SizedBox(height: 16),
+            ],
           ),
-        );
-      },
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _bottomNavIndex,
+        onDestinationSelected: (idx) {
+          setState(() => _bottomNavIndex = idx);
+          if (idx == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const BookingHistoryScreen()),
+            );
+          } else if (idx == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            );
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+              icon: Icon(Icons.local_shipping_outlined), label: 'Home'),
+          NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined), label: 'Bookings'),
+          NavigationDestination(
+              icon: Icon(Icons.person_outline), label: 'Profile'),
+        ],
+      ),
     );
   }
+}
 
-  Widget _buildProfileTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
+class _LocationField extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+
+  const _LocationField({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
-        const SizedBox(height: 20),
-
-        const CircleAvatar(
-          radius: 45,
-          child: Icon(
-            Icons.person,
-            size: 50,
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: QuickMoveColors.textMuted)),
+              Text(value,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14)),
+            ],
           ),
         ),
-
-        const SizedBox(height: 16),
-
-        const Center(
-          child: Text(
-            'QuickMove User',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        const Center(
-          child: Text(
-            'Delivery made simple',
-          ),
-        ),
-
-        const SizedBox(height: 30),
-
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.local_shipping),
-            title: const Text('QuickMove'),
-            subtitle: const Text(
-              'Mini logistics and delivery app',
-            ),
-          ),
-        ),
-
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('App Version'),
-            subtitle: const Text('1.0.0'),
-          ),
-        ),
+        const Icon(Icons.edit_outlined,
+            size: 18, color: QuickMoveColors.textMuted),
       ],
     );
   }
+}
 
-  Widget _statusChip(String status) {
+class _VehicleListCard extends StatelessWidget {
+  final VehicleOption vehicle;
+  const _VehicleListCard({required this.vehicle});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 5,
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.grey.shade200,
-      ),
-      child: Text(
-        status,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: vehicle.isRecommended
+              ? QuickMoveColors.accentOrange
+              : QuickMoveColors.borderLight,
+          width: vehicle.isRecommended ? 1.5 : 1,
         ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: QuickMoveColors.surfaceSubtle,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              vehicle.type == VehicleType.twoWheeler
+                  ? Icons.two_wheeler
+                  : Icons.local_shipping,
+              color: QuickMoveColors.primaryNavy,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(vehicle.title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 15)),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: QuickMoveColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(vehicle.tag,
+                          style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: QuickMoveColors.primaryNavy)),
+                    )
+                  ],
+                ),
+                Text('${vehicle.capacity} • ${vehicle.dimensions}',
+                    style: const TextStyle(
+                        fontSize: 12, color: QuickMoveColors.textSecondary)),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text('From ₹${vehicle.basePrice}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      color: QuickMoveColors.primaryNavy)),
+              Text('⚡ ${vehicle.etaMinutes} mins',
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: QuickMoveColors.accentOrange,
+                      fontWeight: FontWeight.w700)),
+            ],
+          )
+        ],
       ),
     );
   }
+}
 
-  String _formatDate(String dateTime) {
-    try {
-      final date = DateTime.parse(dateTime);
-
-      return DateFormat(
-        'dd MMM, hh:mm a',
-      ).format(date);
-    } catch (e) {
-      return dateTime;
-    }
+class _RecentBookingSummaryCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: QuickMoveColors.borderLight),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('Tata Ace Delivery',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              Text('₹342',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('Delivered yesterday • 4:20 PM',
+                  style: TextStyle(
+                      fontSize: 12, color: QuickMoveColors.textSecondary)),
+              Text('Completed',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: QuickMoveColors.emeraldGreen)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

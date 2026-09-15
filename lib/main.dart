@@ -1,33 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
+import 'package:flutter/services.dart';
+import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
-import 'viewmodels/booking_view_model.dart';
 
 void main() {
-  runApp(const LogisticsApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
+  runApp(const QuickMoveApp());
 }
 
-class LogisticsApp extends StatelessWidget {
-  const LogisticsApp({super.key});
+class QuickMoveApp extends StatelessWidget {
+  const QuickMoveApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => BookingViewModel(),
-
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'QuickMove',
-
-        theme: ThemeData(
-          useMaterial3: true,
-          colorSchemeSeed: Colors.indigo,
-          scaffoldBackgroundColor: Colors.white,
-        ),
-
-        home: const LoginScreen(),
-      ),
+    return MaterialApp(
+      title: 'QuickMove Logistics',
+      debugShowCheckedModeBanner: false,
+      theme: QuickMoveTheme.lightTheme,
+      home: const LoginScreen(),
     );
   }
 }
+
