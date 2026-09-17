@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../theme/app_theme.dart';
 import '../models/app_models.dart';
 import 'create_booking_screen.dart';
@@ -15,6 +18,39 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _bottomNavIndex = 0;
 
+  String _userName = 'User';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (doc.exists) {
+        final data = doc.data();
+
+        setState(() {
+          _userName = data?['name']?.toString() ?? 'User';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user name: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,34 +66,52 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.location_on,
-                          color: QuickMoveColors.accentOrange, size: 22),
+                      const Icon(
+                        Icons.location_on,
+                        color: QuickMoveColors.accentOrange,
+                        size: 22,
+                      ),
                       const SizedBox(width: 6),
-                      Text('Bengaluru',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontSize: 16)),
+                      Text(
+                        'Nagpur',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontSize: 16),
+                      ),
                       const Icon(Icons.keyboard_arrow_down, size: 20),
                     ],
                   ),
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: QuickMoveColors.primaryNavy,
-                    child: const Icon(Icons.person, color: Colors.white),
-                  )
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                    ),
+                  ),
                 ],
               ),
+
               const SizedBox(height: 16),
 
-              Text('Good Evening, Jayant 👋',
-                  style: Theme.of(context)
-                      .textTheme
-                      .displayLarge
-                      ?.copyWith(fontSize: 22)),
-              const Text('Nagpur, Maharashtra',
-                  style: TextStyle(
-                      fontSize: 13, color: QuickMoveColors.textSecondary)),
+              // Firebase user name
+              Text(
+                'Good Evening, $_userName 👋',
+                style: Theme.of(context)
+                    .textTheme
+                    .displayLarge
+                    ?.copyWith(fontSize: 22),
+              ),
+
+              const Text(
+                'Nagpur, Maharashtra',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: QuickMoveColors.textSecondary,
+                ),
+              ),
+
               const SizedBox(height: 16),
 
               // Prominent Where to Move Goods Card
@@ -70,127 +124,172 @@ class _HomeScreenState extends State<HomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Where to move goods?',
-                              style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            'Where to move goods?',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: QuickMoveColors.surfaceContainer,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('Instant Dispatch',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: QuickMoveColors.primaryNavy)),
-                          )
+                            child: const Text(
+                              'Instant Dispatch',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: QuickMoveColors.primaryNavy,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
+
                       const SizedBox(height: 16),
-                      _LocationField(
+
+                      const _LocationField(
                         icon: Icons.radio_button_checked,
                         iconColor: QuickMoveColors.emeraldGreen,
                         label: 'PICKUP POINT',
                         value: 'Green Glen Layout, Bellandur',
                       ),
+
                       const Divider(height: 24),
-                      _LocationField(
+
+                      const _LocationField(
                         icon: Icons.call_made,
                         iconColor: QuickMoveColors.accentOrange,
                         label: 'DROP POINT',
                         value: 'Koramangala 4th Block, 80ft Road',
                       ),
+
                       const SizedBox(height: 16),
+
                       ElevatedButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    const CreateBookingScreen()),
+                              builder: (context) =>
+                                  const CreateBookingScreen(),
+                            ),
                           );
                         },
-                        child: const Text('Book a Delivery Now from ₹49'),
-                      )
+                        child: const Text(
+                          'Book a Delivery Now from ₹49',
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
 
               const SizedBox(height: 24),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Choose Your Fleet',
-                      style: Theme.of(context).textTheme.titleLarge),
-                  const Text('FASTEST ETA',
-                      style: TextStyle(
-                          color: QuickMoveColors.accentOrange,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11)),
+                  Text(
+                    'Choose Your Fleet',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Text(
+                    'FASTEST ETA',
+                    style: TextStyle(
+                      color: QuickMoveColors.accentOrange,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
+
               const SizedBox(height: 12),
 
               // Available Vehicles
-              ...kAvailableVehicles
-                  .map((vehicle) => _VehicleListCard(vehicle: vehicle)),
+              ...kAvailableVehicles.map(
+                (vehicle) => _VehicleListCard(vehicle: vehicle),
+              ),
 
               const SizedBox(height: 16),
+
               // Recent Booking Section
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Recent Booking',
-                      style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    'Recent Booking',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) =>
-                                const BookingHistoryScreen()),
+                          builder: (context) =>
+                              const BookingHistoryScreen(),
+                        ),
                       );
                     },
-                    child: const Text('View All',
-                        style: TextStyle(
-                            color: QuickMoveColors.accentOrange,
-                            fontWeight: FontWeight.w700)),
+                    child: const Text(
+                      'View All',
+                      style: TextStyle(
+                        color: QuickMoveColors.accentOrange,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
+
               const SizedBox(height: 10),
-              _RecentBookingSummaryCard(),
+
+              const _RecentBookingSummaryCard(),
+
               const SizedBox(height: 16),
             ],
           ),
         ),
       ),
+
       bottomNavigationBar: NavigationBar(
         selectedIndex: _bottomNavIndex,
         onDestinationSelected: (idx) {
           setState(() => _bottomNavIndex = idx);
+
           if (idx == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => const BookingHistoryScreen()),
+                builder: (context) => const BookingHistoryScreen(),
+              ),
             );
           } else if (idx == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ),
             );
           }
         },
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.local_shipping_outlined), label: 'Home'),
+            icon: Icon(Icons.local_shipping_outlined),
+            label: 'Home',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.inventory_2_outlined), label: 'Bookings'),
+            icon: Icon(Icons.inventory_2_outlined),
+            label: 'Bookings',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
         ],
       ),
     );
@@ -214,25 +313,39 @@ class _LocationField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: iconColor, size: 20),
+        Icon(
+          icon,
+          color: iconColor,
+          size: 20,
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: QuickMoveColors.textMuted)),
-              Text(value,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 14)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: QuickMoveColors.textMuted,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
         ),
-        const Icon(Icons.edit_outlined,
-            size: 18, color: QuickMoveColors.textMuted),
+        const Icon(
+          Icons.edit_outlined,
+          size: 18,
+          color: QuickMoveColors.textMuted,
+        ),
       ],
     );
   }
@@ -240,7 +353,10 @@ class _LocationField extends StatelessWidget {
 
 class _VehicleListCard extends StatelessWidget {
   final VehicleOption vehicle;
-  const _VehicleListCard({required this.vehicle});
+
+  const _VehicleListCard({
+    required this.vehicle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -273,53 +389,76 @@ class _VehicleListCard extends StatelessWidget {
               size: 24,
             ),
           ),
+
           const SizedBox(width: 14),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text(vehicle.title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 15)),
+                    Text(
+                      vehicle.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: QuickMoveColors.surfaceContainer,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(vehicle.tag,
-                          style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: QuickMoveColors.primaryNavy)),
-                    )
+                      child: Text(
+                        vehicle.tag,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: QuickMoveColors.primaryNavy,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                Text('${vehicle.capacity} • ${vehicle.dimensions}',
-                    style: const TextStyle(
-                        fontSize: 12, color: QuickMoveColors.textSecondary)),
+
+                Text(
+                  '${vehicle.capacity} • ${vehicle.dimensions}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: QuickMoveColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
+
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('From ₹${vehicle.basePrice}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                      color: QuickMoveColors.primaryNavy)),
-              Text('⚡ ${vehicle.etaMinutes} mins',
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: QuickMoveColors.accentOrange,
-                      fontWeight: FontWeight.w700)),
+              Text(
+                'From ₹${vehicle.basePrice}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: QuickMoveColors.primaryNavy,
+                ),
+              ),
+              Text(
+                '⚡ ${vehicle.etaMinutes} mins',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: QuickMoveColors.accentOrange,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -327,42 +466,195 @@ class _VehicleListCard extends StatelessWidget {
 }
 
 class _RecentBookingSummaryCard extends StatelessWidget {
+  const _RecentBookingSummaryCard();
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: QuickMoveColors.borderLight),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Tata Ace Delivery',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              Text('₹342',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-            ],
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('userId', isEqualTo: user.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(
+                color: QuickMoveColors.accentOrange,
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return const Text(
+            'Unable to load recent booking.',
+            style: TextStyle(
+              color: QuickMoveColors.textSecondary,
+            ),
+          );
+        }
+
+        final bookings = snapshot.data?.docs ?? [];
+
+        if (bookings.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: QuickMoveColors.borderLight,
+              ),
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.local_shipping_outlined,
+                  size: 32,
+                  color: QuickMoveColors.textMuted,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'No bookings yet',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Your recent booking will appear here.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: QuickMoveColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Find the newest booking locally.
+        final sortedBookings = [...bookings];
+
+        sortedBookings.sort((a, b) {
+          final aTime = a.data()['createdAt'];
+          final bTime = b.data()['createdAt'];
+
+          if (aTime is Timestamp && bTime is Timestamp) {
+            return bTime.compareTo(aTime);
+          }
+
+          return 0;
+        });
+
+        final booking = sortedBookings.first.data();
+
+        final vehicleType =
+            booking['vehicleType']?.toString() ?? 'Delivery';
+
+        final price = booking['price'];
+
+        final status =
+            booking['status']?.toString() ?? 'Pending';
+
+        String priceText;
+
+        if (price is num) {
+          priceText = '₹${price.toStringAsFixed(0)}';
+        } else {
+          priceText = '₹0';
+        }
+
+        final createdAt = booking['createdAt'];
+
+        String dateText = 'Recently';
+
+        if (createdAt is Timestamp) {
+          final date = createdAt.toDate();
+
+          dateText =
+              '${date.day}/${date.month}/${date.year} • '
+              '${date.hour.toString().padLeft(2, '0')}:'
+              '${date.minute.toString().padLeft(2, '0')}';
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: QuickMoveColors.borderLight,
+            ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Delivered yesterday • 4:20 PM',
-                  style: TextStyle(
-                      fontSize: 12, color: QuickMoveColors.textSecondary)),
-              Text('Completed',
-                  style: TextStyle(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      vehicleType,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    priceText,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 6),
+
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      dateText,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color:
+                            QuickMoveColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    status,
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: QuickMoveColors.emeraldGreen)),
+                      color: status.toLowerCase() ==
+                              'completed'
+                          ? QuickMoveColors.emeraldGreen
+                          : QuickMoveColors.accentOrange,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "432875763778",
+    "project_id": "quickmove-demo",
+    "storage_bucket": "quickmove-demo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:432875763778:android:d59139d23de67e674595db",
+        "android_client_info": {
+          "package_name": "com.example.mini_logistics_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7LtJLLEnuBArW9VVrE-Q_tdmQQ8qqQBA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

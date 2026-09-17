@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+
+import '../models/booking_model.dart';
+import '../services/booking_service.dart';
 import 'booking_summary_screen.dart';
 
 class CreateBookingScreen extends StatefulWidget {
@@ -10,348 +12,355 @@ class CreateBookingScreen extends StatefulWidget {
 }
 
 class _CreateBookingScreenState extends State<CreateBookingScreen> {
-  int _selectedVehicleIndex = 1; // Mini truck selected
-  bool _loadingHelper = true;
-  String _selectedCategory = 'Household / Furniture';
+  final _formKey = GlobalKey<FormState>();
 
-  final List<String> _categories = [
-    'Household / Furniture',
-    'Electronics / Appliances',
-    'Cartons & Bags',
-    'Commercial Freight'
-  ];
+  final TextEditingController _pickupController = TextEditingController();
+  final TextEditingController _dropController = TextEditingController();
+
+  final BookingService _bookingService = BookingService();
+
+  VehicleOption? _selectedVehicle;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _pickupController.dispose();
+    _dropController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _continueToSummary() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedVehicle == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a vehicle.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final bookingId = await _bookingService.createBooking(
+        pickupLocation: _pickupController.text,
+        dropLocation: _dropController.text,
+        vehicleType: _selectedVehicle!.title,
+        price: _selectedVehicle!.basePrice,
+      );
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingSummaryScreen(
+            bookingId: bookingId,
+            pickupLocation: _pickupController.text.trim(),
+            dropLocation: _dropController.text.trim(),
+            vehicle: _selectedVehicle!,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Booking Create',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: QuickMoveColors.surfaceSubtle,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Text('BLR',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('STEP 1 OF 2',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: QuickMoveColors.accentOrange)),
-            Text('Trip & Goods Details',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 22)),
-            const SizedBox(height: 16),
-
-            // Route Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: QuickMoveColors.borderLight),
-              ),
-              child: Column(
-                children: [
-                  _AddressRow(
-                    isPickup: true,
-                    title: 'Flat 402, Prestige Ferns, Bellandur',
-                    subTitle: 'Rahul (Self) • 98765 43210',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(),
-                  ),
-                  _AddressRow(
-                    isPickup: false,
-                    title: 'Shop 12, 1st Cross, Koramangala 5th Block',
-                    subTitle: 'Amit Verma • 98112 33445',
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: QuickMoveColors.surfaceContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Row(
-                          children: [
-                            Icon(Icons.navigation, size: 16, color: QuickMoveColors.accentOrange),
-                            SizedBox(width: 8),
-                            Text('8.4 km • 28 mins via Outer Ring Rd',
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-                          ],
-                        ),
-                        Text('View Route',
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: QuickMoveColors.accentOrange)),
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-            Text('Select Logistics Vehicle', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-
-            // Vehicle Options
-            _SelectVehicleTile(
-              title: '2-Wheeler',
-              payload: '20 kg',
-              price: '₹120',
-              eta: '4 mins',
-              isSelected: _selectedVehicleIndex == 0,
-              onTap: () => setState(() => _selectedVehicleIndex = 0),
-            ),
-            _SelectVehicleTile(
-              title: 'Mini Truck (Tata Ace)',
-              payload: '750 kg',
-              price: '₹385',
-              eta: '6 mins',
-              isRecommended: true,
-              isSelected: _selectedVehicleIndex == 1,
-              onTap: () => setState(() => _selectedVehicleIndex = 1),
-            ),
-            _SelectVehicleTile(
-              title: '8ft Pickup',
-              payload: '1200 kg',
-              price: '₹620',
-              eta: '12 mins',
-              isSelected: _selectedVehicleIndex == 2,
-              onTap: () => setState(() => _selectedVehicleIndex = 2),
-            ),
-
-            const SizedBox(height: 20),
-            Text('Goods Category', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              children: _categories.map((cat) {
-                final isSel = _selectedCategory == cat;
-                return ChoiceChip(
-                  label: Text(cat),
-                  selected: isSel,
-                  onSelected: (selected) => setState(() => _selectedCategory = cat),
-                  selectedColor: QuickMoveColors.primaryNavy,
-                  labelStyle: TextStyle(
-                    color: isSel ? Colors.white : QuickMoveColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 16),
-            // Driver Loading Helper Add-on
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: QuickMoveColors.borderLight),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.handshake_outlined, color: QuickMoveColors.accentOrange),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Driver Loading Helper (+₹150)',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        Text('Helper assists driver with loading & ground transit',
-                            style: TextStyle(fontSize: 11, color: QuickMoveColors.textSecondary)),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: _loadingHelper,
-                    activeColor: QuickMoveColors.accentOrange,
-                    onChanged: (val) => setState(() => _loadingHelper = val),
-                  )
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: QuickMoveColors.borderLight)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('ESTIMATED FARE',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: QuickMoveColors.textMuted)),
-                Text('Tolls & GST incl.',
-                    style: TextStyle(fontSize: 11, color: QuickMoveColors.emeraldGreen, fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('₹535',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: QuickMoveColors.primaryNavy)),
-                Text('(₹385 + ₹150 Helper)',
-                    style: TextStyle(fontSize: 12, color: QuickMoveColors.textSecondary)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BookingSummaryScreen()),
-                );
-              },
-              child: const Text('Review Booking →'),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AddressRow extends StatelessWidget {
-  final bool isPickup;
-  final String title;
-  final String subTitle;
-  const _AddressRow({required this.isPickup, required this.title, required this.subTitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          isPickup ? Icons.radio_button_checked : Icons.location_on,
-          color: isPickup ? QuickMoveColors.emeraldGreen : QuickMoveColors.accentOrange,
-          size: 20,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isPickup ? 'PICKUP ADDRESS' : 'DROP ADDRESS',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: QuickMoveColors.textMuted)),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              Text(subTitle, style: const TextStyle(fontSize: 11, color: QuickMoveColors.textSecondary)),
-            ],
+        title: const Text(
+          'Create Booking',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF0F172A),
           ),
         ),
-        const Text('Change',
-            style: TextStyle(color: QuickMoveColors.accentOrange, fontWeight: FontWeight.w700, fontSize: 12)),
-      ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: const Color(0xFF0F172A),
+      ),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Where should we pick up?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                TextFormField(
+                  controller: _pickupController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter pickup location',
+                    prefixIcon: const Icon(
+                      Icons.my_location_outlined,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFEA580C),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter pickup location';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                const Text(
+                  'Where should we deliver?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                TextFormField(
+                  controller: _dropController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter drop location',
+                    prefixIcon: const Icon(
+                      Icons.location_on_outlined,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFEA580C),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter drop location';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 30),
+
+                const Text(
+                  'Choose Vehicle',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                ...kAvailableVehicles.map(
+                  (vehicle) => _buildVehicleCard(vehicle),
+                ),
+
+                const SizedBox(height: 30),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed:
+                        _isLoading ? null : _continueToSummary,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEA580C),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          const Color(0xFFF5A47A),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 23,
+                            width: 23,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Text(
+                            'Continue to Summary',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
-}
 
-class _SelectVehicleTile extends StatelessWidget {
-  final String title;
-  final String payload;
-  final String price;
-  final String eta;
-  final bool isSelected;
-  final bool isRecommended;
-  final VoidCallback onTap;
+  Widget _buildVehicleCard(VehicleOption vehicle) {
+    final isSelected = _selectedVehicle == vehicle;
 
-  const _SelectVehicleTile({
-    required this.title,
-    required this.payload,
-    required this.price,
-    required this.eta,
-    required this.isSelected,
-    this.isRecommended = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        setState(() {
+          _selectedVehicle = vehicle;
+        });
+      },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? QuickMoveColors.accentOrange : QuickMoveColors.borderLight,
+            color: isSelected
+                ? const Color(0xFFEA580C)
+                : const Color(0xFFE2E8F0),
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
+            Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.local_shipping_outlined,
+                color: Color(0xFFEA580C),
+              ),
+            ),
+
+            const SizedBox(width: 14),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                      if (isRecommended) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: QuickMoveColors.accentOrangeLight,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('RECOMMENDED',
-                              style: TextStyle(
-                                  color: QuickMoveColors.accentOrangeDark,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800)),
-                        )
-                      ]
-                    ],
+                  Text(
+                    vehicle.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
-                  Text('Capacity: $payload • ETA: $eta',
-                      style: const TextStyle(fontSize: 12, color: QuickMoveColors.textSecondary)),
+                  const SizedBox(height: 4),
+                  Text(
+                    vehicle.capacity,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'ETA: ${vehicle.etaMinutes} mins',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
                 ],
               ),
             ),
-            Text(price,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: QuickMoveColors.primaryNavy)),
-            const SizedBox(width: 10),
+
+            Text(
+              '₹${vehicle.basePrice.toStringAsFixed(0)}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
             Icon(
-              isSelected ? Icons.check_circle : Icons.circle_outlined,
-              color: isSelected ? QuickMoveColors.accentOrange : QuickMoveColors.borderLight,
-            )
+              isSelected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_off,
+              color: isSelected
+                  ? const Color(0xFFEA580C)
+                  : const Color(0xFF94A3B8),
+            ),
           ],
         ),
       ),
